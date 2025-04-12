@@ -1,0 +1,12 @@
+# docker-compose.yml
+version: '3.8'
+services:
+  ddns:
+    image: ddns-flask
+    container_name: ddns-flask
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./app/config.json:/app/config.json
+      - ./app/ddns_addresses.txt:/app/ddns_addresses.txt

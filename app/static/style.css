@@ -1,0 +1,38 @@
+.domain-list {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.domain {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 6px;
+}
+
+.domain.success {
+    background-color: #d4edda; /* light green */
+    border: 1px solid #c3e6cb;
+}
+
+.domain.partial {
+    background-color: #fff3cd; /* light yellow */
+    border: 1px solid #ffeeba;
+}
+
+.domain.failure {
+    background-color: #f8d7da; /* light red */
+    border: 1px solid #f5c6cb;
+}
+
+.domain-toggle,
+.address-toggle {
+    cursor: pointer;
+    font-weight: bold;
+    display: inline-block;
+    margin-bottom: 4px;
+}
+
+.address-list, .status-list {
+    list-style-type: circle;
+    margin-left: 20px;
+}

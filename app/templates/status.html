@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DDNS Status</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>DDNS Monitor Status</h1>
+        <p><strong>Public IP:</strong> <code>{{ s.public_ip or "N/A" }}</code></p>
+        <p><strong>Last Update:</strong> {{ s.last_update or "Never" }}</p>
+    
+        <div class="section">
+            <h3>Tracked Domains</h3>
+            <ul class="domain-list">
+                {% for domain in s.grouped_addresses %}
+                    {% set status_class = s.domain_status.get(domain, 'unknown') %}
+                    <li class="domain {{ status_class }}">
+                        <span class="domain-toggle" onclick="toggleDomain(this)">▶ {{ domain }}</span>
+                        <ul class="address-list" style="display: none;">
+                            {% for addr in s.grouped_addresses[domain] %}
+                                <li>
+                                    <span class="address-toggle" onclick="toggleDomain(this)">▶ {{ addr }}</span>
+                                    <ul class="status-list" style="display: none;">
+                                        <li>
+                                            {% if addr in s.update_results.successes %}
+                                                ✅ Success
+                                            {% else %}
+                                                ❌ Failed, {{ s.update_results.failures[addr] if addr in s.update_results.failures else 'Unknown error' }}
+                                            {% endif %}
+                                        </li>
+                                    </ul>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        function toggleDomain(span) {
+            const target = span.nextElementSibling;
+            const expanded = target.style.display === 'block';
+            target.style.display = expanded ? 'none' : 'block';
+            span.textContent = expanded ? span.textContent.replace('▼', '▶') : span.textContent.replace('▶', '▼');
+        }
+    
+        window.onload = () => {
+            document.querySelectorAll('.domain-toggle, .address-toggle').forEach(span => {
+                span.textContent = "▶ " + span.textContent.trim().replace(/^▶|▼/, '');
+            });
+        };
+    </script>
+    
+</body>
+</html>
