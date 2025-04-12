@@ -20,7 +20,7 @@ Not fancy, just does the job. (Made for my needs with ChatGPT helping to write s
 ### Clone this repo
 
 ```bash
-git clone https://github.com/yourusername/ddns-flask.git
+git clone https://github.com/devinatkin/ddns-flask.git
 cd ddns-flask
 ```
 
