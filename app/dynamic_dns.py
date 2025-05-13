@@ -31,6 +31,18 @@ def load_addresses_for_ddns():
         print("ddns_addresses.txt not found.")
         return []
 
+def to_relative(name: str, zone: str) -> str:
+    """
+    Convert an API 'name' field to the relative name the edit/create
+    endpoints expect.  '' (empty) means the zone apex.
+    """
+    if name in ("@", "", zone):
+        return ""                      # apex record
+    if name.endswith("." + zone):
+        return name[: -(len(zone) + 1)]   # strip “….<zone>”
+    return name                         # already relative
+
+
 def get_root_domain(domain):
     # Use regex to extract the root domain from a full domain name
     match = re.search(r"([^\.]+\.[^\.]+)$", domain)
@@ -52,7 +64,10 @@ def process_root_domains(root_domains, addresses, public_ip):
 
         if allRecords["status"] == "SUCCESS":
             print(f"Successfully retrieved records for {root_domain}.")
-
+            skipped_count = 0
+            already_correct_count = 0
+            updated_count = 0
+            failed_count = 0
             for record in allRecords["records"]:
                 # Construct the full domain name for comparison
                 if record["name"] == "@":
@@ -63,21 +78,25 @@ def process_root_domains(root_domains, addresses, public_ip):
                     full_record_name = f"{record['name']}.{root_domain}"
 
                 known_record_names.add(full_record_name.lower())
-                skipped_count = 0
-                already_correct_count = 0
-                updated_count = 0
-                failed_count = 0
                 if full_record_name.lower() in addresses_set:
                     if record["content"] != public_ip:
                         print(f"Updating {record['name']} from {record['content']} to {public_ip}")
-                        update_response = requests.post(apiConfig["endpoint"] + f'/dns/edit/{root_domain}/{record["id"]}', data=json.dumps({
+                        relative = to_relative(record["name"], root_domain)
+
+                        update_payload = {
                             "secretapikey": apiConfig["secretapikey"],
                             "apikey": apiConfig["apikey"],
-                            "name": record["name"],
+                            "name": relative,
                             "type": record["type"],
                             "content": public_ip,
-                            "ttl": record.get("ttl", 600)
-                        }))
+                            "ttl": record.get("ttl", 600),
+                        }
+
+                        update_response = requests.post(
+                            f"{apiConfig['endpoint']}/dns/edit/{root_domain}/{record['id']}",
+                            data=json.dumps(update_payload),
+                        )
+
                         update_status = json.loads(update_response.text)
                         if update_status.get("status") == "SUCCESS":
                             updated_count += 1
@@ -101,17 +120,18 @@ def process_root_domains(root_domains, addresses, public_ip):
                     continue  # Skip if the address doesn't belong to this root
 
                 if address.lower() not in known_record_names:
-                    subdomain = address.replace(f".{root_domain}", "")
+                    subdomain = address[:-len(root_domain)-1]
                     print(f"Creating missing A record for {address} (subdomain: '{subdomain}')")
-
-                    create_response = requests.post(apiConfig["endpoint"] + f'/dns/create/{root_domain}', data=json.dumps({
+                    
+                    create_payload = {
                         "secretapikey": apiConfig["secretapikey"],
                         "apikey": apiConfig["apikey"],
-                        "name": "" if subdomain == root_domain else subdomain,
+                        "name": to_relative(subdomain, root_domain),
                         "type": "A",
                         "content": public_ip,
-                        "ttl": 600
-                    }))
+                        "ttl": 600,
+                    }
+                    create_response = requests.post(apiConfig["endpoint"] + f'/dns/create/{root_domain}', data=json.dumps(create_payload))
                     create_status = json.loads(create_response.text)
 
                     if create_status.get("status") == "SUCCESS":
